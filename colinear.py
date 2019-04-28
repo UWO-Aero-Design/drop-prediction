@@ -1,7 +1,7 @@
 '''
 
     Ignore this for now. Thinking out loud in the comments:
-    
+
     The goal of this algorithm is to direct the pilot to line the plane up with the target
     In order to line up the plane with the target, we attempt to make three data points colinear
     The three data points will be [last_position, current_position, target_position]
@@ -29,6 +29,9 @@
 from collections import namedtuple
 import math
 
+import xml.etree.ElementTree as ET
+import pyproj as proj
+
 # Takes in three namedtuples
 def colinear(a, b, c):
     '''
@@ -46,7 +49,7 @@ def direction(a, b, c):
         Given a,b,c cartesian coordinates. Return the direction that we must turn currently to head towards the target 
         Works by calculating the angle between the current location b and the midpoint of the line between target c and prev location a
     '''
-
+    print(a,b,c)
     mid_x = (a.x + c.x) / 2
     mid_y = (a.y + c.y) / 2
 
@@ -54,16 +57,31 @@ def direction(a, b, c):
     theta2 = math.atan2( (c.y - a.y), (c.x - a.x) )
 
     print((mid_x, mid_y), theta, theta2)
-    
+    print(theta*theta2)
+
     # Hahahaha figure this one out
     if colinear(a,b,c):
         return "Straight"
-    elif theta*theta2 + theta2 < 0:
-        return "Left"
-    elif theta*theta2 + theta2  > 0:
-        return "Right"
+    elif theta < 0:
+        if theta2 < 0:
+            return "Left"
+        else:
+            return "Right"
+    elif theta  > 0:
+        if theta2 < 0:
+            return "Left"
+        else:
+            return "Right"
     else:
         return None
+
+def convertXY(lat, lon, ref_lat = 0, ref_lon = 0):
+    print(lat,lon)
+    x = 6370 * (lon - ref_lon) * math.pi / 180.0 * math.cos(ref_lat)
+    y = 6370 * (lat - ref_lat) * math.pi / 180.0
+
+    return x,y
+
 
 def main():
     Coord = namedtuple('Coord', 'x y')
@@ -86,6 +104,36 @@ def main():
 
     print( colinear( prev, curr, target ) )
     print( direction( prev, curr, target ) )
+
+    tree = ET.parse('test-paths/left.gpx')
+    root = tree.getroot()
+    
+    coords = []
+
+    # Parse XML Element tree
+    for content in root:
+        for child in content:
+            coords.append( [ float(child.attrib['lat']), float(child.attrib['lon']) ] )
+    
+    print coords
+
+    # Projections
+    crs_wgs = proj.Proj(init='epsg:4326') 
+    crs_bng = proj.Proj(init='epsg:27700')
+
+    for coord in coords:
+        result = convertXY(lat=coord[0], lon=coord[1])
+        print(result)
+
+    a = convertXY(lat=coords[0][0], lon=coords[0][1], ref_lat=42.994027, ref_lon=-81.277546)
+    b = convertXY(lat=coords[1][0], lon=coords[1][1], ref_lat=42.994027, ref_lon=-81.277546)
+    t = convertXY(lat=coords[4][0], lon=coords[4][1], ref_lat=42.994027, ref_lon=-81.277546)
+
+    a = Coord(a[0], a[1])
+    b = Coord(b[0], b[1])
+    t = Coord(t[0], t[1])
+
+    print( direction( t, b, a ) )
 
 if __name__ == "__main__":
     main()
