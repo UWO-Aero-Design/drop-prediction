@@ -1,0 +1,5 @@
+In order to generate some waypoints for testing
+
+1) Use geoplanner.com to convert a set of waypoints into gpx files
+2) Parse gpx into csv using gpxpy?
+3) Parse script takes in gpx file and a filename for the output csv
